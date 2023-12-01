@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import os
+import env
 
 import requests
 import math
@@ -91,5 +92,56 @@ def csv(dataframe, file_name):
         
         # Cache data to CSV file
         df.to_csv(file_name)
+
+    return df
+
+
+#----------------------Store data-----------------------#
+
+def get_connection(db, user=env.user, host=env.host, password= env.password):
+    return f'mysql+pymysql://{user}:{password}@{host}/{db}'
+
+
+def acquire_store():
+    
+    filename = 'store.csv'
+    
+    if os.path.exists(filename):
+        
+        return pd.read_csv(filename)
+    
+    else:
+        
+        query = '''
+                SELECT sale_date, sale_amount,
+                item_brand, item_name, item_price,
+                store_address, store_zipcode
+                FROM sales
+                LEFT JOIN items USING(item_id)
+                LEFT JOIN stores USING(store_id)
+                '''
+        
+        url = get_connection(db='tsa_item_demand')
+        
+        df = pd.read_sql(query, url)
+        
+        df.to_csv(filename, index=False)
+        
+        return df
+    
+#------------ Germany Data -----------#
+def get_germany_data():
+    '''
+    This function creates a csv of germany energy data if one does not exist
+    if one already exists, it uses the existing csv 
+    and brings it into pandas as dataframe
+    '''
+    if os.path.isfile('opsd_germany_daily.csv'):
+        df = pd.read_csv('opsd_germany_daily.csv', index_col=0)
+    
+    else:
+        url = 'https://raw.githubusercontent.com/jenfly/opsd/master/opsd_germany_daily.csv'
+        df = pd.read_csv(url)
+        df.to_csv('opsd_germany_daily.csv')
 
     return df
